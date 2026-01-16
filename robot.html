@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>تحكم بالسيارة من المتصفح</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #f0f8ff;
+            text-align: center;
+            padding: 40px;
+        }
+
+        h1 {
+            color: #0056b3;
+        }
+
+        .controls {
+            margin: 30px auto;
+            width: 300px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr 1fr;
+            gap: 10px;
+        }
+
+        button {
+            padding: 15px;
+            font-size: 20px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .forward {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .backward {
+            background: #f44336;
+            color: white;
+        }
+
+        .left {
+            background: #2196F3;
+            color: white;
+        }
+
+        .right {
+            background: #FF9800;
+            color: white;
+        }
+
+        .stop {
+            background: #9c27b0;
+            color: white;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+        }
+
+        .status {
+            margin-top: 20px;
+            font-size: 18px;
+            color: #555;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>🚗 روبوت السيارة - التحكم من المتصفح</h1>
+
+    <div class="controls">
+        <button class="forward" onclick="sendCommand('F')">أمام</button>
+        <button class="left" onclick="sendCommand('L')">يسار</button>
+        <button class="right" onclick="sendCommand('R')">يمين</button>
+        <button class="backward" onclick="sendCommand('B')">خلف</button>
+        <button class="stop" onclick="sendCommand('S')">توقّف</button>
+    </div>
+
+    <p class="status" id="status">انتظر الاتصال...</p>
+
+    <script>
+        let bluetoothDevice = null;
+        let bluetoothCharacteristic = null;
+
+        async function connect() {
+            try {
+                const device = await navigator.bluetooth.requestDevice({
+                    filters: [{ name: "RobotCar_Web" }]
+                });
+
+                document.getElementById("status").textContent = "جاري الاتصال...";
+
+                const server = await device.gatt.connect();
+                const service = await server.getPrimaryService("6E400001-B5A3-F393-E0A9-E50E24DCCA9E");
+                bluetoothCharacteristic = await service.getCharacteristic("6E400002-B5A3-F393-E0A9-E50E24DCCA9E");
+
+                bluetoothDevice = device;
+                document.getElementById("status").textContent = "تم الاتصال بنجاح!";
+                console.log("Connected to RobotCar_Web");
+            } catch (error) {
+                console.error("Connection failed:", error);
+                alert("فشل الاتصال: " + error.message);
+            }
+        }
+
+        async function sendCommand(command) {
+            if (!bluetoothCharacteristic) {
+                alert("لم تكن هناك اتصال. اضغط على 'اتصال' أولًا.");
+                return;
+            }
+
+            try {
+                await bluetoothCharacteristic.writeValue(new TextEncoder().encode(command));
+                console.log("Command sent:", command);
+            } catch (error) {
+                console.error("Failed to send command:", error);
+                alert("فشل الإرسال: " + error.message);
+            }
+        }
+
+        // تشغيل الاتصال عند الضغط على زر
+        window.onload = () => {
+            const connectBtn = document.createElement("button");
+            connectBtn.textContent = "اتصال";
+            connectBtn.style.fontSize = "18px";
+            connectBtn.style.padding = "10px 20px";
+            connectBtn.style.margin = "10px auto";
+            connectBtn.onclick = connect;
+            document.body.appendChild(connectBtn);
+        };
+    </script>
+
+</body>
+
+</html>
